@@ -1,20 +1,20 @@
-volumes:
-  caddy-data:
-    name: caddy-data
-  caddy-config:
-    name: caddy-config
-  database:
-    name: database
-  bsky:
-    name: bsky
-  redis:
-    name: redis
-  zplc-data:
-    name: zplc-data
-  labelmuncher:
-    name: labelmuncher
-  opensearch:
-    name: opensearch
+# volumes:
+#   caddy-data:
+#     name: caddy-data
+#   caddy-config:
+#     name: caddy-config
+#   database:
+#     name: database
+#   bsky:
+#     name: bsky
+#   redis:
+#     name: redis
+#   zplc-data:
+#     name: zplc-data
+#   labelmuncher:
+#     name: labelmuncher
+#   opensearch:
+#     name: opensearch
 
 networks:
   default:
@@ -82,7 +82,7 @@ services:
       - POSTGRES_DB=healthcheck
     volumes:
       - ./config/init-postgres:/docker-entrypoint-initdb.d/
-      - database:/var/lib/postgresql/data/
+      - ./data/database:/var/lib/postgresql/data/
     restart: always
 
   pgbouncer:
@@ -115,7 +115,7 @@ services:
   redis:
     image: redis:7-bookworm
     volumes:
-      - redis:/data/
+      - ./data/redis:/data/
     restart: always
 
   # runs https://github.com/char/zplc-server/blob/main/src/ingest.ts
@@ -177,7 +177,7 @@ services:
       - BSKY_DID_PLC_URL=https://${PLC_FQDN:-plc.${DOMAIN}}
       - BSKY_LABELS_FROM_ISSUER_DIDS=${BSKY_LABELS_FROM_ISSUER_DIDS}
       - BSKY_PUBLIC_URL=https://${BSKY_FQDN:-bsky.${DOMAIN}}
-      - BSKY_REPO_PROVIDER=wss://${BGS_FQDN:-relay1.us-east.bsky.network}
+      - BSKY_REPO_PROVIDER=wss://${BGS_FQDN:-relay}
       - BSKY_SEARCH_ENDPOINT=https://${SEARCH_FQDN:-search.${DOMAIN}} # leave empty to use the appview's own search endpoint
       - BSKY_SERVER_DID=did:web:${BSKY_FQDN:-bsky.${DOMAIN}}
       - BSKY_SERVICE_SIGNING_KEY=${BSKY_SERVICE_SIGNING_KEY:?}
@@ -195,12 +195,13 @@ services:
       - REDIS_HOST=redis
       - PORT=2584
     volumes:
-      - bsky:/cache/
+      - ./data/bsky:/cache/
     restart: always
     depends_on:
       - database
       - pgbouncer
       - redis
+      - relay
       #- caddy
 
   # indexes from relay into appview database
@@ -218,7 +219,7 @@ services:
       - BSKY_DB_POSTGRES_SCHEMA=bsky
       - BSKY_DB_POSTGRES_URL=postgres://${POSTGRES_USER:-pg}:${POSTGRES_PASSWORD:?}@pgbouncer/bsky
       - BSKY_DB_POOL_SIZE=50
-      - BSKY_REPO_PROVIDER=wss://${BGS_FQDN:-relay1.us-east.bsky.network}
+      - BSKY_REPO_PROVIDER=wss://${BGS_FQDN:-relay}
       - DID_PLC_URL=https://${PLC_FQDN:-plc.${DOMAIN}}
       - REDIS_URL=redis://redis:6379
       - SUB_MIN_WORKERS=16 # you can get by with 8 or fewer off-peak, but they're pretty cheap
@@ -228,6 +229,7 @@ services:
     depends_on:
       - database
       - pgbouncer
+      - relay
       #- caddy
 
   # consumes labels from specified labelers into appview database
@@ -247,7 +249,7 @@ services:
       - MOD_SERVICE_DID=${MOD_SERVICE_DID}
     restart: always
     volumes:
-      - labelmuncher:/app
+      - ./data/labelmuncher:/app
     depends_on:
       - database
       - pgbouncer
@@ -280,61 +282,81 @@ services:
     restart: always
 
   # (optional) search backend
-  opensearch:
-    image: ${IMAGE_NAMESPACE:?}/opensearch
-    build:
-      context: ./repos/indigo/
-      dockerfile: cmd/palomar/Dockerfile.opensearch
-    pull_policy: never
-    ports:
-      - 9200:9200
-      - 9600:9600
-    environment:
-      - discovery.type=single-node
-      - transport.host=127.0.0.1
-      - http.host=0.0.0.0
-      - cluster.name=opensearch-palomar
-      - node.name=os-node
-      - plugins.security.disabled=true
-      - bootstrap.memory_lock=true # disable JVM heap memory swapping
-      - OPENSEARCH_JAVA_OPTS=-Xms8192m -Xmx32768m # set min and max JVM heap sizes to at least 50% of system RAM, up to 32 GB
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:?}
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    volumes:
-      - opensearch:/usr/share/opensearch/data/
-    restart: always
+  # opensearch:
+  #   image: ${IMAGE_NAMESPACE:?}/opensearch
+  #   build:
+  #     context: ./repos/indigo/
+  #     dockerfile: cmd/palomar/Dockerfile.opensearch
+  #   pull_policy: never
+  #   ports:
+  #     - 9200:9200
+  #     - 9600:9600
+  #   environment:
+  #     - discovery.type=single-node
+  #     - transport.host=127.0.0.1
+  #     - http.host=0.0.0.0
+  #     - cluster.name=opensearch-palomar
+  #     - node.name=os-node
+  #     - plugins.security.disabled=true
+  #     - bootstrap.memory_lock=true # disable JVM heap memory swapping
+  #     - OPENSEARCH_JAVA_OPTS=-Xms8192m -Xmx32768m # set min and max JVM heap sizes to at least 50% of system RAM, up to 32 GB
+  #     - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:?}
+  #   ulimits:
+  #     memlock:
+  #       soft: -1
+  #       hard: -1
+  #     nofile:
+  #       soft: 65536
+  #       hard: 65536
+  #   volumes:
+  #     - ./data/opensearch:/usr/share/opensearch/data/
+  #   restart: always
 
   # (optional) search indexer & API
-  palomar:
-    image: ${IMAGE_NAMESPACE:?}/palomar
-    build:
-      context: ./repos/indigo/
-      dockerfile: cmd/palomar/Dockerfile
-    pull_policy: never
+  # palomar:
+  #   image: ${IMAGE_NAMESPACE:?}/palomar
+  #   build:
+  #     context: ./repos/indigo/
+  #     dockerfile: cmd/palomar/Dockerfile
+  #   pull_policy: never
+  #   ports:
+  #     - 3999:3999
+  #   environment:
+  #     - ATP_BGS_HOST=wss://${BGS_FQDN:-relay}
+  #     - ATP_PLC_HOST=https://${PLC_FQDN:-plc.${DOMAIN}}
+  #     - DATABASE_URL=postgres://${POSTGRES_USER:-pg}:${POSTGRES_PASSWORD:?}@pgbouncer/palomar
+  #     - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:?}
+  #     - ES_HOSTS=http://admin:${OPENSEARCH_PASSWORD:?}@opensearch:9200
+  #     - ES_INSECURE_SSL=true
+  #     - ES_PASSWORD=${OPENSEARCH_PASSWORD:?}
+  #     - ES_USERNAME=admin
+  #     - PALOMAR_BIND=0.0.0.0:3999
+  #     - PALOMAR_RELAY_SYNC_RATE_LIMIT=10
+  #     - PALOMAR_INDEX_MAX_CONCURRENCY=25
+  #     - PALOMAR_INDEXING_RATE_LIMIT=99999
+  #     - PALOMAR_DISCOVER_REPOS=true
+  #   restart: always
+  #   depends_on:
+  #     - opensearch
+  #     - pgbouncer
+  #     - relay
+  #     #- caddy
+  relay:
     ports:
-      - 3999:3999
+      - 2470:2470
+    build:
+      context: ./repos/indigo
+      dockerfile: cmd/relay/Dockerfile
+    command: /relay serve
     environment:
-      - ATP_BGS_HOST=wss://${BGS_FQDN:-relay1.us-east.bsky.network}
-      - ATP_PLC_HOST=https://${PLC_FQDN:-plc.${DOMAIN}}
-      - DATABASE_URL=postgres://${POSTGRES_USER:-pg}:${POSTGRES_PASSWORD:?}@pgbouncer/palomar
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:?}
-      - ES_HOSTS=http://admin:${OPENSEARCH_PASSWORD:?}@opensearch:9200
-      - ES_INSECURE_SSL=true
-      - ES_PASSWORD=${OPENSEARCH_PASSWORD:?}
-      - ES_USERNAME=admin
-      - PALOMAR_BIND=0.0.0.0:3999
-      - PALOMAR_RELAY_SYNC_RATE_LIMIT=10
-      - PALOMAR_INDEX_MAX_CONCURRENCY=25
-      - PALOMAR_INDEXING_RATE_LIMIT=99999
-      - PALOMAR_DISCOVER_REPOS=true
+      - RELAY_DEFAULT_REPO_LIMIT=600_000 # ~lines up with the number of repos on each bsky.social PDS
+      - RELAY_ADMIN_PASSWORD=${RELAY_ADMIN_PASSWORD:-changeme}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-pg}:${POSTGRES_PASSWORD:?}@pgbouncer/relay
+      - RELAY_REPLAY_WINDOW=2h
+      - RELAY_HOST=${RELAY_HOST:-relay1.us-east.bsky.network}
+      - ATP_RELAY_HOST=http://${ATP_RELAY_HOST:-localhost}:2470
+    volumes:
+      - ./data/relay:/data
     restart: always
     depends_on:
-      - opensearch
       - pgbouncer
-      #- caddy

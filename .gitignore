@@ -6,3 +6,4 @@ repos/**
 .zed/
 .DS_Store
 ssl/*
+data/*
