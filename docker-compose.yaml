@@ -264,8 +264,8 @@ services:
       /usr/bin/bskyweb serve
     environment:
       - ATP_APPVIEW_HOST=https://${BSKY_FQDN:-bsky.${DOMAIN}}
-      - GOLOG_LOG_LEVEL=${LOG_LEVEL_DEFAULT:-info}
-      - LOG_LEVEL=${LOG_LEVEL_DEFAULT:-info}
+      - GOLOG_LOG_LEVEL=${SOCIAL_APP_LOG_LEVEL:-info}
+      - LOG_LEVEL=${SOCIAL_APP_LOG_LEVEL:-info}
       - HTTP_ADDRESS=:8100
       - NODE_ENV=${NODE_ENV:-production}
     healthcheck:
