@@ -62,17 +62,17 @@ services:
         RUN rm -rf pg_repack-*
         RUN apt-get remove --auto-remove -y make unzip gcc libssl-dev zlib1g-dev libreadline-dev libzstd-dev
     pull_policy: never
-    shm_size: 16gb
+    shm_size: 2gb
     command:
-      # these settings are based on a 128GB RAM machine with 32 cores, adjust as needed
+      # these settings are based on a 16GB RAM machine with 4 cores, adjust as needed
       # work_mem, wal_buffers, shared_buffers, max_*_workers should be increased when backfilling
-      "-c 'max_connections=1000' -c 'idle_in_transaction_session_timeout=60000' -c 'statement_timeout=300000' -c 'lock_timeout=2000' -c 'search_path=bsky,public,pg_catalog'
-      -c 'max_wal_size=16GB' -c 'shared_buffers=24GB' -c 'maintenance_work_mem=2GB' -c 'work_mem=32MB' -c 'wal_buffers=36MB' -c 'effective_cache_size=80GB'
-      -c 'max_parallel_workers=64' -c 'max_parallel_workers_per_gather=8' -c 'max_worker_processes=64' -c 'max_parallel_maintenance_workers=32' -c 'autovacuum_max_workers=8'
-      -c 'autovacuum_vacuum_scale_factor=0.05' -c 'autovacuum_analyze_scale_factor=0.02' -c 'autovacuum_vacuum_threshold=1000' -c 'autovacuum_analyze_threshold=500'
-      -c 'checkpoint_completion_target=0.9' -c 'max_locks_per_transaction=256' -c 'default_statistics_target=100' -c 'random_page_cost=1.1' -c 'effective_io_concurrency=200'
-      -c 'log_min_duration_statement=400' -c 'log_min_error_statement=warning' -c 'log_temp_files=0' -c 'log_lock_waits=true' -c 'log_error_verbosity=verbose' -c 'log_rotation_size=40MB'
-      -c 'shared_preload_libraries=pg_stat_statements' -c 'pg_stat_statements.track=all'"
+    "-c 'max_connections=200' -c 'idle_in_transaction_session_timeout=60000' -c 'statement_timeout=300000' -c 'lock_timeout=2000' -c 'search_path=bsky,public,pg_catalog'
+    -c 'max_wal_size=4GB' -c 'shared_buffers=4GB' -c 'maintenance_work_mem=1GB' -c 'work_mem=16MB' -c 'wal_buffers=16MB' -c 'effective_cache_size=12GB'
+    -c 'max_parallel_workers=4' -c 'max_parallel_workers_per_gather=2' -c 'max_worker_processes=4' -c 'max_parallel_maintenance_workers=2' -c 'autovacuum_max_workers=2'
+    -c 'autovacuum_vacuum_scale_factor=0.05' -c 'autovacuum_analyze_scale_factor=0.02' -c 'autovacuum_vacuum_threshold=1000' -c 'autovacuum_analyze_threshold=500'
+    -c 'checkpoint_completion_target=0.9' -c 'max_locks_per_transaction=256' -c 'default_statistics_target=100' -c 'random_page_cost=1.1' -c 'effective_io_concurrency=200'
+    -c 'log_min_duration_statement=400' -c 'log_min_error_statement=warning' -c 'log_temp_files=0' -c 'log_lock_waits=true' -c 'log_error_verbosity=verbose' -c 'log_rotation_size=40MB'
+    -c 'shared_preload_libraries=pg_stat_statements' -c 'pg_stat_statements.track=all'"
     environment:
       - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
       - POSTGRES_USER=${POSTGRES_USER:-pg}
