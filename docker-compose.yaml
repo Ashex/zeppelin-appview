@@ -22,26 +22,27 @@ networks:
     external: true
 
 services:
-  caddy:
-    # cf. https://blog.kurokobo.com/archives/3669#Caddy_acme_server
-    image: caddy:2
-    ports:
-      - 80:80
-      - 443:443
-      - 443:443/udp
-      - 9000:9000
-    environment:
-      - DOMAIN=${DOMAIN:?}
-      - EMAIL_FOR_CERTS=${EMAIL_FOR_CERTS:?}
-    volumes:
-      - ./config/caddy/Caddyfile:/etc/caddy/Caddyfile
-      - caddy-data:/data
-      - caddy-config:/config
-    healthcheck:
-      # https://caddy.community/t/what-is-the-best-practise-for-doing-a-health-check-for-caddy-containers/12995
-      test: "wget --no-verbose --tries=1 --spider http://localhost:2019/metrics || exit 1"
-      interval: 5s
-      retries: 20
+  # Not using caddy 
+  # caddy:
+  #   # cf. https://blog.kurokobo.com/archives/3669#Caddy_acme_server
+  #   image: caddy:2
+  #   ports:
+  #     - 80:80
+  #     - 443:443
+  #     - 443:443/udp
+  #     - 9000:9000
+  #   environment:
+  #     - DOMAIN=${DOMAIN:?}
+  #     - EMAIL_FOR_CERTS=${EMAIL_FOR_CERTS:?}
+  #   volumes:
+  #     - ./config/caddy/Caddyfile:/etc/caddy/Caddyfile
+  #     - caddy-data:/data
+  #     - caddy-config:/config
+  #   healthcheck:
+  #     # https://caddy.community/t/what-is-the-best-practise-for-doing-a-health-check-for-caddy-containers/12995
+  #     test: "wget --no-verbose --tries=1 --spider http://localhost:2019/metrics || exit 1"
+  #     interval: 5s
+  #     retries: 20
 
   database:
     # this is a custom image that includes the pg_repack extension
