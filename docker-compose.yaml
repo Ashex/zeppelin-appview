@@ -201,7 +201,7 @@ services:
       - database
       - pgbouncer
       - redis
-      - caddy
+      #- caddy
 
   # indexes from relay into appview database
   # https://github.com/zeppelin-social/bsky-indexer
@@ -228,7 +228,7 @@ services:
     depends_on:
       - database
       - pgbouncer
-      - caddy
+      #- caddy
 
   # consumes labels from specified labelers into appview database
   # https://github.com/zeppelin-social/bsky-indexer
@@ -251,7 +251,7 @@ services:
     depends_on:
       - database
       - pgbouncer
-      - caddy
+      #- caddy
 
   # (optional) social-app instance to go with your appview
   social-app:
@@ -337,4 +337,4 @@ services:
     depends_on:
       - opensearch
       - pgbouncer
-      - caddy
+      #- caddy
