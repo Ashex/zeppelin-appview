@@ -5,3 +5,4 @@ repos/**
 .vscode/
 .zed/
 .DS_Store
+ssl/*
