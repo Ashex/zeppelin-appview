@@ -38,3 +38,8 @@ You'll be running the following services:
 ---
 
 Credit to [itaru2622](https://github.com/itaru2622/bluesky-selfhost-env) for the original repo that this is based on.
+
+
+## Additional Notes
+
+[Generate did web and key](https://blog.smokesignal.events/posts/3lwopvsmtx22a-creating-a-did-method-web-identity-for-atprotocol)
