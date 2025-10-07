@@ -119,36 +119,36 @@ services:
     restart: always
 
   # runs https://github.com/char/zplc-server/blob/main/src/ingest.ts
-  # zplc-ingest:
-  #   image: ${IMAGE_NAMESPACE:?}/zplc
-  #   build:
-  #     context: ./repos/zplc-server/
-  #     dockerfile_inline: |
-  #       FROM denoland/deno:2.4.0
-  #       WORKDIR /plc
-  #       COPY --chown=deno:deno . .
-  #   pull_policy: never
-  #   command: deno run -A src/ingest.ts
-  #   volumes:
-  #     - zplc-data:/plc/data
-  #   restart: always
+  zplc-ingest:
+    image: ${IMAGE_NAMESPACE:?}/zplc
+    build:
+      context: ./repos/zplc-server/
+      dockerfile_inline: |
+        FROM denoland/deno:2.4.0
+        WORKDIR /plc
+        COPY --chown=deno:deno . .
+    pull_policy: never
+    command: deno run -A src/ingest.ts
+    volumes:
+      - ./data/zplc-data:/plc/data
+    restart: always
 
-  # # runs https://github.com/char/zplc-server/blob/main/src/serve-plc.ts
-  # zplc-server:
-  #   image: ${IMAGE_NAMESPACE:?}/zplc
-  #   build:
-  #     context: ./repos/zplc-server/
-  #     dockerfile_inline: |
-  #       FROM denoland/deno:2.4.0
-  #       WORKDIR /plc
-  #       COPY --chown=deno:deno . .
-  #   pull_policy: never
-  #   command: deno serve -A --parallel --port 2582 src/serve-plc.ts
-  #   ports:
-  #     - 2582:2582
-  #   volumes:
-  #     - zplc-data:/plc/data
-  #   restart: always
+  # runs https://github.com/char/zplc-server/blob/main/src/serve-plc.ts
+  zplc-server:
+    image: ${IMAGE_NAMESPACE:?}/zplc
+    build:
+      context: ./repos/zplc-server/
+      dockerfile_inline: |
+        FROM denoland/deno:2.4.0
+        WORKDIR /plc
+        COPY --chown=deno:deno . .
+    pull_policy: never
+    command: deno serve -A --parallel --port 2582 src/serve-plc.ts
+    ports:
+      - 2582:2582
+    volumes:
+      - ./data/zplc-data:/plc/data
+    restart: always
 
   # the appview
   bsky:
