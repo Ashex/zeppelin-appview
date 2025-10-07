@@ -352,7 +352,7 @@ services:
       - RELAY_DEFAULT_REPO_LIMIT=600_000 # ~lines up with the number of repos on each bsky.social PDS
       - RELAY_ADMIN_PASSWORD=${RELAY_ADMIN_PASSWORD:-changeme}
       - DATABASE_URL=postgres://${POSTGRES_USER:-pg}:${POSTGRES_PASSWORD:?}@pgbouncer/relay
-      - RELAY_REPLAY_WINDOW=2h
+      - RELAY_REPLAY_WINDOW=24h
       - RELAY_HOST=${RELAY_HOST:-https://relay1.us-east.bsky.network}
       - ATP_RELAY_HOST=http://${ATP_RELAY_HOST:-localhost}:2470
     volumes:
