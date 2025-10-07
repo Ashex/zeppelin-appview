@@ -248,8 +248,8 @@ services:
       - BSKY_LABELS_FROM_ISSUER_DIDS=${BSKY_LABELS_FROM_ISSUER_DIDS}
       - MOD_SERVICE_DID=${MOD_SERVICE_DID}
     restart: always
-    volumes:
-      - ./data/labelmuncher:/app
+    # volumes:
+      # - ./data/labelmuncher:/app
     depends_on:
       - database
       - pgbouncer
