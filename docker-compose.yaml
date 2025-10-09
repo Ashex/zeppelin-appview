@@ -107,7 +107,7 @@ services:
       - PGBOUNCER_MIN_POOL_SIZE=0
       - PGBOUNCER_MAX_CLIENT_CONN=10000
       - PGBOUNCER_MAX_PREPARED_STATEMENTS=1000
-      - PGBOUNCER_EXTRA_FLAGS=-v
+      # - PGBOUNCER_EXTRA_FLAGS=-v
     depends_on:
       - database
     restart: always
