@@ -223,8 +223,9 @@ services:
       - DID_PLC_URL=https://${PLC_FQDN:-plc.${DOMAIN}}
       - REDIS_URL=redis://redis:6379
       - SUB_MIN_WORKERS=16 # you can get by with 8 or fewer off-peak, but they're pretty cheap
-      - SUB_MAX_WORKERS=30 # you need at least ~30-40 to keep up with backfill if you miss a few hours
-      - STATS_FREQUENCY_MS=60000
+      - SUB_MAX_WORKERS=40 # you need at least ~30-40 to keep up with backfill if you miss a few hours
+      - STATS_FREQUENCY_MS=30000
+      - TINI_SUBREAPER=true
     restart: always
     depends_on:
       - database
