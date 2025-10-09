@@ -43,3 +43,5 @@ Credit to [itaru2622](https://github.com/itaru2622/bluesky-selfhost-env) for the
 ## Additional Notes
 
 [Generate did web and key](https://blog.smokesignal.events/posts/3lwopvsmtx22a-creating-a-did-method-web-identity-for-atprotocol)
+
+https://l4.pm/wiki/Personal%20Wiki/bluesky/bsky%20independent%20appview/a%20step%20by%20step%20process%20into%20an%20appview.html
