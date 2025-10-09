@@ -174,11 +174,14 @@ services:
       - BSKY_DB_POSTGRES_SCHEMA=bsky
       - BSKY_DB_POSTGRES_URL=postgres://${POSTGRES_USER:-pg}:${POSTGRES_PASSWORD:?}@pgbouncer/bsky
       - BSKY_DB_POOL_SIZE=500
-      - BSKY_DID_PLC_URL=https://${PLC_FQDN:-plc.${DOMAIN}}
+      - BSKY_SERVER_DID=${APPVIEW_DID:?} # you must create this DID in your PDS instance first
+      # - BSKY_DID_PLC_URL=https://${PLC_FQDN:-plc.${DOMAIN}}
+      - BSKY_DID_PLC_URL=https://plc.directory
       - BSKY_LABELS_FROM_ISSUER_DIDS=${BSKY_LABELS_FROM_ISSUER_DIDS}
       - BSKY_PUBLIC_URL=https://${BSKY_FQDN:-bsky.${DOMAIN}}
-      - BSKY_REPO_PROVIDER=wss://${BGS_FQDN:-relay}
-      - BSKY_SEARCH_ENDPOINT=https://${SEARCH_FQDN:-search.${DOMAIN}} # leave empty to use the appview's own search endpoint
+      - BSKY_REPO_PROVIDER=ws://${BGS_FQDN:-relay:2470}
+      # - BSKY_SEARCH_ENDPOINT=https://${SEARCH_FQDN:-search.${DOMAIN}} # leave empty to use the appview's own search endpoint
+      - BSKY_SEARCH_ENDPOINT=http://palomar:3999
       - BSKY_SERVER_DID=did:web:${BSKY_FQDN:-bsky.${DOMAIN}}
       - BSKY_SERVICE_SIGNING_KEY=${BSKY_SERVICE_SIGNING_KEY:?}
       - BSKY_INDEXED_AT_EPOCH=${BSKY_INDEXED_AT_EPOCH:-2022-11-17T00:35:16.391+00:00}
@@ -219,8 +222,9 @@ services:
       - BSKY_DB_POSTGRES_SCHEMA=bsky
       - BSKY_DB_POSTGRES_URL=postgres://${POSTGRES_USER:-pg}:${POSTGRES_PASSWORD:?}@pgbouncer/bsky
       - BSKY_DB_POOL_SIZE=50
-      - BSKY_REPO_PROVIDER=wss://${BGS_FQDN:-relay}
-      - DID_PLC_URL=https://${PLC_FQDN:-plc.${DOMAIN}}
+      - BSKY_REPO_PROVIDER=ws://${BGS_FQDN:-relay:2470}
+      # - DID_PLC_URL=https://${PLC_FQDN:-plc.${DOMAIN}}
+      - DID_PLC_URL=https://plc.directory
       - REDIS_URL=redis://redis:6379
       - SUB_MIN_WORKERS=16 # you can get by with 8 or fewer off-peak, but they're pretty cheap
       - SUB_MAX_WORKERS=40 # you need at least ~30-40 to keep up with backfill if you miss a few hours
@@ -271,6 +275,7 @@ services:
       - LOG_LEVEL=${SOCIAL_APP_LOG_LEVEL:-info}
       - HTTP_ADDRESS=:8100
       - NODE_ENV=${NODE_ENV:-production}
+      - EXPO_PUBLIC_BLUESKY_PROXY_DID=${APPVIEW_DID:?}
     healthcheck:
       test:
         [
@@ -283,65 +288,65 @@ services:
     restart: always
 
   # (optional) search backend
-  # opensearch:
-  #   image: ${IMAGE_NAMESPACE:?}/opensearch
-  #   build:
-  #     context: ./repos/indigo/
-  #     dockerfile: cmd/palomar/Dockerfile.opensearch
-  #   pull_policy: never
-  #   ports:
-  #     - 9200:9200
-  #     - 9600:9600
-  #   environment:
-  #     - discovery.type=single-node
-  #     - transport.host=127.0.0.1
-  #     - http.host=0.0.0.0
-  #     - cluster.name=opensearch-palomar
-  #     - node.name=os-node
-  #     - plugins.security.disabled=true
-  #     - bootstrap.memory_lock=true # disable JVM heap memory swapping
-  #     - OPENSEARCH_JAVA_OPTS=-Xms8192m -Xmx32768m # set min and max JVM heap sizes to at least 50% of system RAM, up to 32 GB
-  #     - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:?}
-  #   ulimits:
-  #     memlock:
-  #       soft: -1
-  #       hard: -1
-  #     nofile:
-  #       soft: 65536
-  #       hard: 65536
-  #   volumes:
-  #     - ./data/opensearch:/usr/share/opensearch/data/
-  #   restart: always
+  opensearch:
+    image: ${IMAGE_NAMESPACE:?}/opensearch
+    build:
+      context: ./repos/indigo/
+      dockerfile: cmd/palomar/Dockerfile.opensearch
+    pull_policy: never
+    ports:
+      - 9200:9200
+      - 9600:9600
+    environment:
+      - discovery.type=single-node
+      - transport.host=127.0.0.1
+      - http.host=0.0.0.0
+      - cluster.name=opensearch-palomar
+      - node.name=os-node
+      - plugins.security.disabled=true
+      - bootstrap.memory_lock=true # disable JVM heap memory swapping
+      - OPENSEARCH_JAVA_OPTS=-Xms4096m -Xmx8192m # set min and max JVM heap sizes to at least 50% of system RAM, up to 32 GB
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:?}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - ./data/opensearch:/usr/share/opensearch/data/
+    restart: always
 
   # (optional) search indexer & API
-  # palomar:
-  #   image: ${IMAGE_NAMESPACE:?}/palomar
-  #   build:
-  #     context: ./repos/indigo/
-  #     dockerfile: cmd/palomar/Dockerfile
-  #   pull_policy: never
-  #   ports:
-  #     - 3999:3999
-  #   environment:
-  #     - ATP_BGS_HOST=wss://${BGS_FQDN:-relay}
-  #     - ATP_PLC_HOST=https://${PLC_FQDN:-plc.${DOMAIN}}
-  #     - DATABASE_URL=postgres://${POSTGRES_USER:-pg}:${POSTGRES_PASSWORD:?}@pgbouncer/palomar
-  #     - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:?}
-  #     - ES_HOSTS=http://admin:${OPENSEARCH_PASSWORD:?}@opensearch:9200
-  #     - ES_INSECURE_SSL=true
-  #     - ES_PASSWORD=${OPENSEARCH_PASSWORD:?}
-  #     - ES_USERNAME=admin
-  #     - PALOMAR_BIND=0.0.0.0:3999
-  #     - PALOMAR_RELAY_SYNC_RATE_LIMIT=10
-  #     - PALOMAR_INDEX_MAX_CONCURRENCY=25
-  #     - PALOMAR_INDEXING_RATE_LIMIT=99999
-  #     - PALOMAR_DISCOVER_REPOS=true
-  #   restart: always
-  #   depends_on:
-  #     - opensearch
-  #     - pgbouncer
-  #     - relay
-  #     #- caddy
+  palomar:
+    image: ${IMAGE_NAMESPACE:?}/palomar
+    build:
+      context: ./repos/indigo/
+      dockerfile: cmd/palomar/Dockerfile
+    pull_policy: never
+    ports:
+      - 3999:3999
+    environment:
+      - ATP_BGS_HOST=ws://${BGS_FQDN:-relay:2470}
+      - ATP_PLC_HOST=https://${PLC_FQDN:-plc.${DOMAIN}}
+      - DATABASE_URL=postgres://${POSTGRES_USER:-pg}:${POSTGRES_PASSWORD:?}@pgbouncer/palomar
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_PASSWORD:?}
+      - ES_HOSTS=http://admin:${OPENSEARCH_PASSWORD:?}@opensearch:9200
+      - ES_INSECURE_SSL=true
+      - ES_PASSWORD=${OPENSEARCH_PASSWORD:?}
+      - ES_USERNAME=admin
+      - PALOMAR_BIND=0.0.0.0:3999
+      - PALOMAR_RELAY_SYNC_RATE_LIMIT=10
+      - PALOMAR_INDEX_MAX_CONCURRENCY=20
+      - PALOMAR_INDEXING_RATE_LIMIT=5000
+      - PALOMAR_DISCOVER_REPOS=true
+    restart: always
+    depends_on:
+      - opensearch
+      - pgbouncer
+      - relay
+      #- caddy
   relay:
     ports:
       - 2470:2470
@@ -353,11 +358,45 @@ services:
       - RELAY_DEFAULT_REPO_LIMIT=600_000 # ~lines up with the number of repos on each bsky.social PDS
       - RELAY_ADMIN_PASSWORD=${RELAY_ADMIN_PASSWORD:-changeme}
       - DATABASE_URL=postgres://${POSTGRES_USER:-pg}:${POSTGRES_PASSWORD:?}@pgbouncer/relay
-      - RELAY_REPLAY_WINDOW=24h
+      - RELAY_REPLAY_WINDOW=48h
       - RELAY_HOST=${RELAY_HOST:-https://relay1.us-east.bsky.network}
       - ATP_RELAY_HOST=http://${ATP_RELAY_HOST:-localhost}:2470
+      - LOG_LEVEL=${LOG_LEVEL_DEFAULT:-info}
+      # - RELAY_DISABLE_REQUEST_CRAWL=true
+      # - RELAY_CONCURRENCY_PER_PDS=10
     volumes:
       - ./data/relay:/data
     restart: always
     depends_on:
       - pgbouncer
+
+# PDS (mainly needed to get a did for the appview)
+  pds:
+    image: ghcr.io/bluesky-social/pds:0.4.182
+    ports:
+      - 6011:3000
+    restart: unless-stopped
+    volumes:
+      - ./data/pds:/pds
+    environment:
+      - PDS_DATADIR=/pds
+      - PDS_DATA_DIRECTORY=/pds
+      - PDS_BLOBSTORE_DISK_LOCATION=/pds/blocks
+      - PDS_HOSTNAME=pds.${DOMAIN}
+      - PDS_JWT_SECRET=${PDS_JWT_SECRET:?}
+      - PDS_ADMIN_PASSWORD=${PDS_ADMIN_PASSWORD:?}
+      - PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX=${PDS_PLC_ROTATION_KEY_K256_PRIVATE_KEY_HEX:?}
+      - PDS_EMAIL_SMTP_URL=${PDS_EMAIL_SMTP_URL:?}
+      - PDS_EMAIL_FROM_ADDRESS=${PDS_EMAIL_FROM_ADDRESS:?}
+      - PDS_MODERATION_EMAIL_SMTP_URL=${PDS_MODERATION_EMAIL_SMTP_URL:?}
+      - PDS_MODERATION_EMAIL_ADDRESS=${PDS_MODERATION_EMAIL_ADDRESS:?}
+      - PDS_DID_PLC_URL=https://plc.directory
+      - PDS_BSKY_APP_VIEW_URL=https://api.bsky.app
+      - PDS_BSKY_APP_VIEW_DID=did:web:api.bsky.app
+      - PDS_REPORT_SERVICE_URL=https://mod.bsky.app
+      - PDS_REPORT_SERVICE_DID=did:plc:ar7c4by46qjdydhdevvrndac
+      #- PDS_CRAWLERS=https://bsky.network
+      - PDS_CRAWLERS=https://relay.upcloud.world
+      - PDS_BLOB_UPLOAD_LIMIT=314572800
+      - LOG_LEVEL=info
+      - LOG_ENABLED=true
